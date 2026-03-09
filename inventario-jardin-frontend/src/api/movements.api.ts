@@ -65,22 +65,10 @@ export const movementsApi = {
   getReport: (params?: { dateFrom?: string; dateTo?: string; sectionId?: string; movementType?: string }) =>
     api.get<ApiResponse<FullReport>>('/movements/report', { params }),
 
-  // Descarga directa desde el backend (sin libs de exportación en el frontend)
-  exportExcel: (params: { dateFrom: string; dateTo: string; sectionId?: string; movementType?: string }) => {
-    const q = new URLSearchParams()
-    q.set('dateFrom', params.dateFrom)
-    q.set('dateTo',   params.dateTo)
-    if (params.sectionId)    q.set('sectionId',    params.sectionId)
-    if (params.movementType) q.set('movementType', params.movementType)
-    return api.get<Blob>(`/movements/export/excel?${q.toString()}`, { responseType: 'blob' })
-  },
+  // Descarga directa desde el backend — params pasados como objeto (Axios los serializa)
+  exportExcel: (params: { dateFrom: string; dateTo: string; sectionId?: string; movementType?: string }) =>
+    api.get('/movements/export/excel', { params, responseType: 'blob' }),
 
-  exportPDF: (params: { dateFrom: string; dateTo: string; sectionId?: string; movementType?: string }) => {
-    const q = new URLSearchParams()
-    q.set('dateFrom', params.dateFrom)
-    q.set('dateTo',   params.dateTo)
-    if (params.sectionId)    q.set('sectionId',    params.sectionId)
-    if (params.movementType) q.set('movementType', params.movementType)
-    return api.get<Blob>(`/movements/export/pdf?${q.toString()}`, { responseType: 'blob' })
-  },
+  exportPDF: (params: { dateFrom: string; dateTo: string; sectionId?: string; movementType?: string }) =>
+    api.get('/movements/export/pdf', { params, responseType: 'blob' }),
 }

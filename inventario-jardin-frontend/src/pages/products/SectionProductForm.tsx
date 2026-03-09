@@ -142,9 +142,9 @@ export default function SectionProductForm({ section, customFields, editProduct,
       .map(f => {
         const raw = fieldValues[f.id]
         if (!f.isRequired && (raw === undefined || raw === '')) return null
-        return { fieldId: f.id, value: raw ?? null }
+        return { fieldId: f.id, value: raw ?? null } as FieldValuePayload
       })
-      .filter((x): x is FieldValuePayload => x !== null && x !== undefined)
+      .filter((x): x is FieldValuePayload => x !== null)
 
     try {
       let result: ProductFull

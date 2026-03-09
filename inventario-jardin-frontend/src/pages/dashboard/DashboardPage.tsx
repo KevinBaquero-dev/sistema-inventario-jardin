@@ -72,13 +72,13 @@ function ProductsFilterModal({ mode, onClose }: { mode: FilterMode; onClose: () 
   useEffect(() => {
     if (!mode) return
     setLoading(true)
-    const params: Record<string, unknown> = { limit: 100, sortBy: 'name', sortOrder: 'asc' }
-    if (mode === 'active')     params.isActive = 'true'
-    if (mode === 'lowStock')   params.lowStock = 'true'
-    if (mode === 'outOfStock') params.lowStock = 'true' // filtramos en memoria
+    const params: Parameters<typeof productsApi.getAll>[0] = { limit: 100, sortBy: 'name', sortOrder: 'asc' }
+    if (mode === 'active')     params.isActive = true
+    if (mode === 'lowStock')   params.lowStock = true
+    if (mode === 'outOfStock') params.lowStock = true  // filtramos en memoria
     // total: sin filtros extra
 
-    productsApi.getAll(params as Parameters<typeof productsApi.getAll>[0]).then(res => {
+    productsApi.getAll(params).then(res => {
       let data = res.data.data ?? []
       if (mode === 'outOfStock') data = data.filter(p => Number(p.quantityCurrent) === 0)
       setProducts(data)
