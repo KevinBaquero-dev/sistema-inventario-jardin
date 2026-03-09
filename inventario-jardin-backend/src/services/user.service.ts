@@ -164,7 +164,7 @@ export const UserService = {
       where: { userId },
       select: { section: { select: { id: true, name: true, icon: true, color: true, isActive: true } } },
     });
-    return access.map(a => a.section);
+    return access.map((a: { section: { id: string; name: string; icon: string | null; color: string | null; isActive: boolean } }) => a.section);
   },
 
   async setSections(userId: string, sectionIds: string[]) {
@@ -191,6 +191,6 @@ export const UserService = {
       where: { userId },
       select: { sectionId: true },
     });
-    return access.map(a => a.sectionId);
+    return access.map((a: { sectionId: string }) => a.sectionId);
   },
 };

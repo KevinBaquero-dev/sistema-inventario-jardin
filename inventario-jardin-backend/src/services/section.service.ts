@@ -188,7 +188,7 @@ export const CustomFieldService = {
     });
     if (existing) throw new AppError(`Ya existe un campo con nombre similar: "${input.name}"`, 409);
 
-    return db.$transaction(async (tx) => {
+    return db.$transaction(async (tx: Prisma.TransactionClient) => {
       const field = await tx.customField.create({
         data: {
           sectionId,

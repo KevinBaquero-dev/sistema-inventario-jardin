@@ -28,7 +28,7 @@ export const SettingsService = {
     // Construir resultado combinando defaults + valores guardados
     const result: Record<string, string> = {};
     for (const key of Object.keys(DEFAULT_CONFIG)) {
-      const saved = rows.find(r => r.key === key);
+      const saved = rows.find((r: { key: string; value: string }) => r.key === key);
       result[key] = saved ? saved.value : DEFAULT_CONFIG[key].value;
     }
     return result;
@@ -41,7 +41,7 @@ export const SettingsService = {
     });
 
     return Object.entries(DEFAULT_CONFIG).map(([key, def]) => {
-      const saved = rows.find(r => r.key === key);
+      const saved = rows.find((r: { key: string; value: string; label?: string | null; updatedBy?: { id: string; fullName: string } | null }) => r.key === key);
       return {
         key,
         value:     saved ? saved.value : def.value,

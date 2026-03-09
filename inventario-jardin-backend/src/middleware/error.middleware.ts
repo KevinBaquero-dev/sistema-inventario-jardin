@@ -23,7 +23,7 @@ export class AppError extends Error {
 
     // V8 — mejora stack traces
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
+      (Error as { captureStackTrace?: (t: object, c: unknown) => void }).captureStackTrace?.(this, this.constructor);
     }
   }
 }

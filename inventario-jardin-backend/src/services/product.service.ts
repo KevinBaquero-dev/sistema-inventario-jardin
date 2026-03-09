@@ -153,7 +153,7 @@ export const ProductService = {
 
     // Aplicar filtro de lowStock en memoria (Prisma no soporta comparación entre columnas directamente)
     const items = isLowStock
-      ? rawItems.filter(i =>
+      ? rawItems.filter((i: typeof rawItems[0]) =>
           Number(i.quantityCurrent) <= Number(i.quantityMinimum)
         )
       : rawItems;
@@ -198,7 +198,7 @@ export const ProductService = {
       if (codeExists) throw new AppError(`El código "${input.code}" ya está en uso`, 409);
     }
 
-    return db.$transaction(async (tx) => {
+    return db.$transaction(async (tx: Prisma.TransactionClient) => {
       const item = await tx.inventoryItem.create({
         data: {
           sectionId:       input.sectionId,
@@ -256,7 +256,7 @@ export const ProductService = {
     }
 
     void userId;
-    return db.$transaction(async (tx) => {
+    return db.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.inventoryItem.update({
         where: { id },
         data: {
@@ -319,7 +319,7 @@ export const ProductService = {
 
     return items
       .filter(i => Number(i.quantityCurrent) <= Number(i.quantityMinimum))
-      .map(i => ({
+      .map((i: typeof items[0]) => ({
         ...i,
         stockStatus: Number(i.quantityCurrent) === 0 ? 'OUT_OF_STOCK' : 'LOW_STOCK',
         deficit: Math.max(0, Number(i.quantityMinimum) - Number(i.quantityCurrent)),

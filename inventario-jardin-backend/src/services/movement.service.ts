@@ -128,7 +128,7 @@ export const MovementService = {
 
   async create(input: CreateMovementInput, createdById: string) {
     // Obtener el ítem con lock (SELECT FOR UPDATE via transacción)
-    return db.$transaction(async (tx) => {
+    return db.$transaction(async (tx: Prisma.TransactionClient) => {
 
       // Bloquear el registro del ítem para evitar race conditions
       const item = await tx.inventoryItem.findFirst({
@@ -278,7 +278,7 @@ export const MovementService = {
 
     // Resumen por tipo
     const summary = movements.reduce<Record<string, { count: number; totalQuantity: number; totalCost: number }>>(
-      (acc, m) => {
+      (acc: Record<string, { count: number; totalQuantity: number; totalCost: number }>, m) => {
         const key = m.movementType;
         if (!acc[key]) acc[key] = { count: 0, totalQuantity: 0, totalCost: 0 };
         acc[key].count += 1;
@@ -290,7 +290,7 @@ export const MovementService = {
     );
 
     // Recolectar IDs únicos de secciones para obtener sus campos personalizados
-    const sectionIds = [...new Set(movements.map(m => m.item.section.id))];
+    const sectionIds = [...new Set(movements.map((m: { item: { section: { id: string } } }) => m.item.section.id))];
     const sections   = await db.section.findMany({
       where: { id: { in: sectionIds } },
       select: {
