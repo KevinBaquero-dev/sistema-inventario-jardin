@@ -22,8 +22,9 @@ export class AppError extends Error {
     this.isOperational = isOperational;
 
     // V8 — mejora stack traces
-    if (Error.captureStackTrace) {
-      (Error as { captureStackTrace?: (t: object, c: unknown) => void }).captureStackTrace?.(this, this.constructor);
+    const captureStack = (Error as { captureStackTrace?: (t: object, c: unknown) => void }).captureStackTrace;
+    if (captureStack) {
+      captureStack(this, this.constructor);
     }
   }
 }
