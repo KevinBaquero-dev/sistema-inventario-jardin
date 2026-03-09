@@ -16,7 +16,7 @@ const getUser = (req: Request) => (req as AuthenticatedRequest).user;
 export const SettingsController = {
 
   // GET /settings — público para usuarios autenticados (sidebar lo usa)
-  async index(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async index(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const config = await SettingsService.getAll();
       sendSuccess(res, config, 'Configuración obtenida');
@@ -24,7 +24,7 @@ export const SettingsController = {
   },
 
   // GET /settings/meta — solo admin, con historial de cambios
-  async meta(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async meta(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const config = await SettingsService.getAllWithMeta();
       sendSuccess(res, config, 'Configuración con metadata');

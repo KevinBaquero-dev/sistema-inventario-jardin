@@ -5,7 +5,7 @@
 // Refresh token: 7 días — almacenado en BD, usado para renovar access tokens.
 // =============================================================================
 
-import jwt from 'jsonwebtoken';
+import jwt, { type SignOptions } from 'jsonwebtoken';
 import { UserRole } from '@prisma/client';
 import { env } from '../config/env';
 import { JwtPayload, JwtRefreshPayload } from '../types';
@@ -20,7 +20,7 @@ export function signAccessToken(payload: {
   return jwt.sign(
     { email: payload.email, role: payload.role },
     env.JWT_ACCESS_SECRET,
-    { subject: payload.id, expiresIn: env.JWT_ACCESS_EXPIRES_IN }
+    { subject: payload.id, expiresIn: env.JWT_ACCESS_EXPIRES_IN as SignOptions['expiresIn'] }
   );
 }
 
@@ -38,7 +38,7 @@ export function signRefreshToken(payload: {
   return jwt.sign(
     { tokenId: payload.tokenId },
     env.JWT_REFRESH_SECRET,
-    { subject: payload.userId, expiresIn: env.JWT_REFRESH_EXPIRES_IN }
+    { subject: payload.userId, expiresIn: env.JWT_REFRESH_EXPIRES_IN as SignOptions['expiresIn'] }
   );
 }
 

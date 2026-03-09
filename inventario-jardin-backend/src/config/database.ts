@@ -30,21 +30,18 @@ const createPrismaClient = (): PrismaClient => {
 
   // Log queries lentas en desarrollo (> 500ms)
   if (env.IS_DEV) {
-    // @ts-expect-error: Prisma event types
-    client.$on('query', (e: { query: string; duration: number }) => {
+    client.$on('query' as never, (e: { query: string; duration: number }) => {
       if (e.duration > 500) {
         logger.warn(`⚠️  Query lenta ${e.duration}ms: ${e.query.substring(0, 120)}`);
       }
     });
   }
 
-  // @ts-expect-error: Prisma event types
-  client.$on('warn', (e: { message: string }) => {
+  client.$on('warn' as never, (e: { message: string }) => {
     logger.warn('Prisma warn:', e.message);
   });
 
-  // @ts-expect-error: Prisma event types
-  client.$on('error', (e: { message: string }) => {
+  client.$on('error' as never, (e: { message: string }) => {
     logger.error('Prisma error:', e.message);
   });
 

@@ -199,7 +199,7 @@ export async function generateExcel(params: ExportParams): Promise<Buffer> {
     if (others.length > 0) addDetailSheet(wb, others, [], 'Otras');
   }
 
-  return wb.xlsx.writeBuffer() as Promise<Buffer>;
+  return wb.xlsx.writeBuffer() as unknown as Promise<Buffer>;
 }
 
 // =============================================================================
