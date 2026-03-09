@@ -1,0 +1,10 @@
+node_modules
+.env
+.gemini
+antigravity
+dist
+build
+coverage
+*.log
+.vercel
+.env*.local

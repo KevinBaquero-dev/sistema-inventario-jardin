@@ -1,0 +1,323 @@
+// =============================================================================
+// prisma/schema.prisma
+// Esquema completo del sistema de inventario para jardín infantil.
+// Diseñado para escalar a múltiples sedes en el futuro.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ─────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  COORDINATOR
+  ASSISTANT
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum FieldType {
+  TEXT
+  NUMBER
+  DATE
+  DROPDOWN
+  BOOLEAN
+}
+
+enum MovementType {
+  ENTRY       // Ingreso de material
+  EXIT        // Salida de material
+  TRANSFER    // Transferencia entre ítems/secciones
+  ADJUSTMENT  // Ajuste manual de stock
+}
+
+enum MovementStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  CREATE
+  UPDATE
+  DELETE
+  EXPORT
+  VIEW
+}
+
+// ── Modelos ───────────────────────────────────────────────────────────────────
+
+model User {
+  id                String      @id @default(uuid())
+  email             String      @unique
+  passwordHash      String      @map("password_hash")
+  fullName          String      @map("full_name")
+  role              UserRole    @default(ASSISTANT)
+  status            UserStatus  @default(ACTIVE)
+  phone             String?
+  avatarUrl         String?     @map("avatar_url")
+  mustChangePassword Boolean    @default(false) @map("must_change_password")
+  lastLoginAt       DateTime?   @map("last_login_at")
+  failedLoginCount  Int         @default(0) @map("failed_login_count")
+  lockedUntil       DateTime?   @map("locked_until")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  deletedAt         DateTime?   @map("deleted_at")
+
+  // Relaciones
+  refreshTokens     RefreshToken[]
+  auditLogs         AuditLog[]
+  sectionsCreated   Section[]        @relation("SectionCreatedBy")
+  itemsCreated      InventoryItem[]  @relation("ItemCreatedBy")
+  movementsCreated  InventoryMovement[] @relation("MovementCreatedBy")
+  movementsConfirmed InventoryMovement[] @relation("MovementConfirmedBy")
+  sectionAccess     UserSection[]
+  systemConfigUpdates SystemConfig[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  tokenHash  String    @map("token_hash")
+  deviceInfo String?   @map("device_info")
+  ipAddress  String?   @map("ip_address")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Section {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  description  String?
+  color        String?
+  icon         String?
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdById  String   @map("created_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  createdBy     User           @relation("SectionCreatedBy", fields: [createdById], references: [id])
+  customFields  CustomField[]
+  items         InventoryItem[]
+  userAccess    UserSection[]
+
+  @@map("sections")
+}
+
+model UserSection {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  sectionId String   @map("section_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId],    references: [id], onDelete: Cascade)
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sectionId])
+  @@map("user_sections")
+}
+
+model CustomField {
+  id              String    @id @default(uuid())
+  sectionId       String    @map("section_id")
+  name            String
+  slug            String
+  fieldType       FieldType @map("field_type")
+  label           String
+  placeholder     String?
+  helpText        String?   @map("help_text")
+  isRequired      Boolean   @default(false) @map("is_required")
+  isSearchable    Boolean   @default(false) @map("is_searchable")
+  isVisibleList   Boolean   @default(true)  @map("is_visible_list")
+  displayOrder    Int       @default(0)     @map("display_order")
+  defaultValue    String?   @map("default_value")
+  validationRules Json?     @map("validation_rules")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt      @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  section         Section          @relation(fields: [sectionId], references: [id])
+  dropdownOptions DropdownOption[]
+  fieldValues     ItemFieldValue[]
+
+  @@unique([sectionId, slug])
+  @@map("custom_fields")
+}
+
+model DropdownOption {
+  id           String   @id @default(uuid())
+  fieldId      String   @map("field_id")
+  label        String
+  value        String
+  color        String?
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+
+  field CustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@map("dropdown_options")
+}
+
+model InventoryItem {
+  id              String    @id @default(uuid())
+  sectionId       String    @map("section_id")
+  code            String?   @unique
+  name            String
+  description     String?
+  quantityMinimum Decimal   @default(0) @map("quantity_minimum")
+  quantityMaximum Decimal?  @map("quantity_maximum")
+  quantityCurrent Decimal   @default(0) @map("quantity_current")
+  unit            String    @default("unidad")
+  location        String?
+  imageUrl        String?   @map("image_url")
+  notes           String?
+  isActive        Boolean   @default(true)  @map("is_active")
+  createdById     String    @map("created_by_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt      @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  section     Section          @relation(fields: [sectionId], references: [id])
+  createdBy   User             @relation("ItemCreatedBy", fields: [createdById], references: [id])
+  fieldValues ItemFieldValue[]
+  movements   InventoryMovement[] @relation("MovementItem")
+  transfers   InventoryMovement[] @relation("MovementDestination")
+  stockAlerts StockAlert[]
+
+  @@map("inventory_items")
+}
+
+model ItemFieldValue {
+  id            String    @id @default(uuid())
+  itemId        String    @map("item_id")
+  fieldId       String    @map("field_id")
+  valueText     String?   @map("value_text")
+  valueNumber   Decimal?  @map("value_number")
+  valueDate     DateTime? @map("value_date")
+  valueBoolean  Boolean?  @map("value_boolean")
+  valueOptionId String?   @map("value_option_id")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  item  InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  field CustomField   @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, fieldId])
+  @@map("item_field_values")
+}
+
+model Supplier {
+  id        String    @id @default(uuid())
+  name      String
+  rut       String?   @unique
+  email     String?
+  phone     String?
+  address   String?
+  notes     String?
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt      @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  movements InventoryMovement[]
+
+  @@map("suppliers")
+}
+
+model InventoryMovement {
+  id                String         @id @default(uuid())
+  itemId            String         @map("item_id")
+  movementType      MovementType   @map("movement_type")
+  status            MovementStatus @default(CONFIRMED)
+  quantity          Decimal
+  quantityBefore    Decimal        @map("quantity_before")
+  quantityAfter     Decimal        @map("quantity_after")
+  unitCost          Decimal?       @map("unit_cost")
+  totalCost         Decimal?       @map("total_cost")
+  supplierId        String?        @map("supplier_id")
+  destinationItemId String?        @map("destination_item_id")
+  referenceNumber   String?        @map("reference_number")
+  reason            String?
+  notes             String?
+  movementDate      DateTime       @default(now()) @map("movement_date")
+  confirmedAt       DateTime?      @map("confirmed_at")
+  confirmedById     String?        @map("confirmed_by_id")
+  createdById       String         @map("created_by_id")
+  createdAt         DateTime       @default(now()) @map("created_at")
+
+  item            InventoryItem  @relation("MovementItem", fields: [itemId], references: [id])
+  supplier        Supplier?      @relation(fields: [supplierId], references: [id])
+  destinationItem InventoryItem? @relation("MovementDestination", fields: [destinationItemId], references: [id])
+  createdBy       User           @relation("MovementCreatedBy", fields: [createdById], references: [id])
+  confirmedBy     User?          @relation("MovementConfirmedBy", fields: [confirmedById], references: [id])
+
+  @@map("inventory_movements")
+}
+
+model StockAlert {
+  id               String    @id @default(uuid())
+  itemId           String    @map("item_id")
+  quantityAtAlert  Decimal   @map("quantity_at_alert")
+  minimumQuantity  Decimal   @map("minimum_quantity")
+  isResolved       Boolean   @default(false) @map("is_resolved")
+  resolvedAt       DateTime? @map("resolved_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("stock_alerts")
+}
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  userId      String?     @map("user_id")
+  action      AuditAction
+  entityType  String      @map("entity_type")
+  entityId    String?     @map("entity_id")
+  oldValues   Json?       @map("old_values")
+  newValues   Json?       @map("new_values")
+  ipAddress   String?     @map("ip_address")
+  userAgent   String?     @map("user_agent")
+  success     Boolean     @default(true)
+  errorMessage String?    @map("error_message")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+model SystemConfig {
+  key         String   @id
+  value       String
+  label       String   // Descripción legible para el admin
+  group       String   @default("general") // "general" | "theme"
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedById String?  @map("updated_by_id")
+
+  updatedBy User? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("system_config")
+}

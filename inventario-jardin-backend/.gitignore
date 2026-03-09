@@ -1,0 +1,25 @@
+# Dependencias
+node_modules/
+
+# Build
+dist/
+
+# Variables de entorno (NUNCA subir al repositorio)
+.env
+.env.local
+.env.production
+
+# Logs
+logs/
+*.log
+
+# Prisma
+prisma/migrations/
+
+# Sistema
+.DS_Store
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
